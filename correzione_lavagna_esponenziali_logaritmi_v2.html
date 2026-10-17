@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lavagna Animata - Correzione Simulazione Esponenziali e Logaritmi</title>
+  <!-- Configurazione MathJax per formule matematiche perfette -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root {
+      --bg-app: #0f172a;
+      --bg-board: #14281d;
+      --board-border: #854d0e;
+      --chalk-white: #f8fafc;
+      --chalk-yellow: #fde047;
+      --chalk-cyan: #67e8f9;
+      --chalk-green: #86efac;
+      --chalk-pink: #f9a8d4;
+      --accent: #38bdf8;
+      --panel-bg: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--chalk-white);
+      line-height: 1.6;
+      padding-bottom: 60px;
+    }
+
+    /* Intestazione pagina */
+    header {
+      background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+      padding: 12px 24px;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-title h1 {
+      font-size: 1.25rem;
+      color: var(--chalk-yellow);
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+    }
+
+    .badge-score {
+      background: #0284c7;
+      color: white;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    /* CONTENITORE SUPERIORE SEMPRE IN VISTA (STICKY) */
+    .sticky-top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 2px solid #475569;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Barra di navigazione Esercizi */
+    .exercise-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 20px;
+      background-color: rgba(30, 41, 59, 0.85);
+      border-bottom: 1px solid #334155;
+      justify-content: center;
+    }
+
+    .ex-btn {
+      background: #334155;
+      color: #e2e8f0;
+      border: 2px solid transparent;
+      padding: 6px 13px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .ex-btn:hover {
+      background: #475569;
+    }
+
+    .ex-btn.active {
+      background: #0ea5e9;
+      color: #fff;
+      border-color: var(--chalk-yellow);
+      box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+    }
+
+    /* Controlli Player Stile Video/Animazione dentro la barra fissa */
+    .player-bar {
+      max-width: 1150px;
+      margin: 0 auto;
+      padding: 10px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .player-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 9px 15px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .ctrl-btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .ctrl-btn:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    .ctrl-btn:disabled {
+      background: #334155;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    .ctrl-btn.play-auto {
+      background: #16a34a;
+      min-width: 175px;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(22, 163, 74, 0.4);
+    }
+
+    .ctrl-btn.play-auto:hover:not(:disabled) {
+      background: #15803d;
+    }
+
+    .ctrl-btn.play-auto.playing {
+      background: #dc2626;
+      box-shadow: 0 0 14px rgba(220, 38, 38, 0.5);
+    }
+
+    .ctrl-btn.play-auto.playing:hover:not(:disabled) {
+      background: #b91c1c;
+    }
+
+    .ctrl-btn.secondary {
+      background: #475569;
+    }
+
+    .ctrl-btn.secondary:hover:not(:disabled) {
+      background: #64748b;
+    }
+
+    .progress-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      min-width: 220px;
+      justify-content: flex-end;
+    }
+
+    .progress-track {
+      flex: 1;
+      max-width: 240px;
+      height: 10px;
+      background: #334155;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #86efac);
+      width: 0%;
+      transition: width 0.35s ease;
+    }
+
+    .step-counter {
+      font-weight: 700;
+      color: var(--chalk-yellow);
+      font-size: 0.95rem;
+      min-width: 105px;
+      text-align: right;
+    }
+
+    /* Contenitore principale della lavagna */
+    .main-container {
+      max-width: 1150px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+
+    /* Lavagna Scenografica */
+    .chalkboard {
+      background-color: var(--bg-board);
+      background-image: 
+        radial-gradient(rgba(255,255,255,0.04) 1px, transparent 0),
+        linear-gradient(135deg, rgba(20, 40, 29, 0.95), rgba(15, 32, 23, 0.98));
+      background-size: 24px 24px, 100% 100%;
+      border: 12px solid var(--board-border);
+      border-radius: 14px;
+      padding: 28px;
+      min-height: 500px;
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.6), 0 12px 28px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    /* Intestazione problema sulla lavagna */
+    .board-header {
+      border-bottom: 2px dashed rgba(255, 255, 255, 0.25);
+      padding-bottom: 16px;
+      margin-bottom: 22px;
+    }
+
+    .board-header .ex-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--chalk-cyan);
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .board-header .ex-prompt {
+      font-size: 1.35rem;
+      color: var(--chalk-white);
+      font-weight: 600;
+    }
+
+    .board-header .method-badge {
+      display: inline-block;
+      margin-top: 8px;
+      background: rgba(253, 224, 71, 0.15);
+      border: 1px solid var(--chalk-yellow);
+      color: var(--chalk-yellow);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    /* Lista dei passaggi animati */
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .step-card {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      border-left: 4px solid var(--chalk-cyan);
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: writeStep 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      scroll-margin-top: 150px;
+    }
+
+    .step-card.latest {
+      background: rgba(253, 224, 71, 0.09);
+      border-left-color: var(--chalk-yellow);
+      box-shadow: 0 0 18px rgba(253, 224, 71, 0.12);
+    }
+
+    @keyframes writeStep {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .step-math {
+      font-size: 1.2rem;
+      color: var(--chalk-white);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow-x: auto;
+    }
+
+    .step-explanation {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #e2e8f0;
+      font-size: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .step-explanation .teacher-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--chalk-yellow);
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Messaggio Lavagna Vuota */
+    .empty-board-hint {
+      text-align: center;
+      padding: 50px 20px;
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 1.15rem;
+      border: 2px dashed rgba(255,255,255,0.15);
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+
+    /* Sezione Grafico e Tabella per il Quesito 7d */
+    .visual-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 2px dashed rgba(255,255,255,0.2);
+      display: none;
+      scroll-margin-top: 150px;
+    }
+
+    .visual-section.visible {
+      display: block;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 1.05rem;
+      text-align: center;
+    }
+
+    .data-table th, .data-table td {
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 10px;
+    }
+
+    .data-table th {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--chalk-cyan);
+    }
+
+    .data-table td {
+      color: var(--chalk-yellow);
+      font-weight: 700;
+    }
+
+    .canvas-wrapper {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+      overflow-x: auto;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+    }
+
+    @media (max-width: 820px) {
+      .step-card {
+        grid-template-columns: 1fr;
+      }
+      .chalkboard {
+        padding: 18px;
+      }
+      .player-bar {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <h1>Lavagna Interattiva • Correzione Simulazione Esponenziali e Logaritmi</h1>
+      <p>Liceo Monti di Chieri • Classe 5 • Autocontrollo: 20 punti</p>
+    </div>
+    <div class="badge-score">Spiegazione Passo-Passo</div>
+  </header>
+
+  <!-- BLOCCO SUPERIORE SEMPRE FISSO IN ALTO (Menu Esercizi + Controlli Play/Pausa) -->
+  <div class="sticky-top-bar">
+    <nav class="exercise-nav" id="exerciseNav"></nav>
+
+    <div class="player-bar">
+      <div class="player-controls">
+        <button class="ctrl-btn play-auto" id="btnAutoPlay" title="Riproduci o metti in pausa (Tasto Spazio)">▶ Play Animazione</button>
+        <button class="ctrl-btn" id="btnPrev" title="Passaggio precedente (Freccia Sinistra)">◀ Indietro</button>
+        <button class="ctrl-btn" id="btnNext" title="Scrivi il prossimo passaggio (Freccia Destra)">Avanti ▶</button>
+        <button class="ctrl-btn secondary" id="btnReset" title="Ricomincia esercizio">⏮ Inizio</button>
+        <button class="ctrl-btn secondary" id="btnShowAll" title="Mostra tutti i passaggi">Mostra Tutto ⏭</button>
+      </div>
+      <div class="progress-info">
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="step-counter" id="stepCounter">Passo 0 / 0</div>
+      </div>
+    </div>
+  </div>
+
+  <main class="main-container">
+    <!-- Lavagna verde del docente -->
+    <section class="chalkboard">
+      <div class="board-header">
+        <div class="ex-meta">
+          <span id="exCategory">PARTE 1 • EQUAZIONI</span>
+          <span id="exPoints">Valore: 2 punti</span>
+        </div>
+        <div class="ex-prompt" id="exPrompt">Seleziona un esercizio</div>
+        <div class="method-badge" id="exMethod">Metodo: —</div>
+      </div>
+
+      <!-- Area in cui vengono scritti i passaggi -->
+      <div class="steps-list" id="stepsContainer"></div>
+
+      <div class="empty-board-hint" id="emptyHint">
+        Premi <strong>"▶ Play Animazione"</strong> o <strong>"Avanti ▶"</strong> (oppure usa <strong>Spazio</strong> e le frecce ⬅ ➡ della tastiera) per iniziare a scrivere i passaggi alla lavagna.
+      </div>
+
+      <!-- Area Tabella e Grafico per il Problema finale (Quesito d) -->
+      <div class="visual-section" id="visualSection">
+        <h3 style="color: var(--chalk-yellow); margin-bottom: 10px;">Tabella Valori e Grafico di $M(t) = 150 \cdot (0,8)^t$</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>$t\text{ (ore)}$</th>
+              <th>$0$</th>
+              <th>$1$</th>
+              <th>$2$</th>
+              <th>$3$</th>
+              <th>$4$</th>
+              <th>$6$</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>$M(t)\text{ (mg)}$</th>
+              <td id="cell-0">?</td>
+              <td id="cell-1">?</td>
+              <td id="cell-2">?</td>
+              <td id="cell-3">?</td>
+              <td id="cell-4">?</td>
+              <td id="cell-6">?</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="canvas-wrapper">
+          <canvas id="decayCanvas" width="860" height="360"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Database completo di tutti gli esercizi e passaggi commentati
+    const exercises = [
+      {
+        id: "eq1",
+        btnLabel: "Eq. 1",
+        category: "Equazioni da risolvere • Esercizio 1",
+        points: "2 punti",
+        prompt: "Risolvi l'equazione esponenziale: $$5^x - 5^{x-1} = 100$$",
+        method: "Metodo scelto: Scomposizione delle potenze e raccoglimento a fattor comune di 5^x",
+        steps: [
+          {
+            math: "$$5^x - 5^{x-1} = 100$$",
+            explanation: "Osserviamo l'equazione: l'incognita $x$ compare all'esponente in due termini con base $5$. Non possiamo uguagliare subito le basi perché c'è una sottrazione al primo membro."
+          },
+          {
+            math: "$$5^x - \\frac{5^x}{5^1} = 100 \\quad \\text{oppure} \\quad 5^x - 5^x \\cdot 5^{-1} = 100$$",
+            explanation: "Applichiamo al contrario la proprietà del quoziente di potenze ($a^{x-1} = \\frac{a^x}{a^1}$) per spezzare $5^{x-1}$ e far comparire $5^x$ in entrambi i termini."
+          },
+          {
+            math: "$$5^x \\cdot \\left(1 - \\frac{1}{5}\\right) = 100$$",
+            explanation: "Raccogliamo a fattor comune l'esponenziale $5^x$ al primo membro."
+          },
+          {
+            math: "$$5^x \\cdot \\frac{4}{5} = 100$$",
+            explanation: "Svolgiamo il calcolo nella parentesi: $1 - \\frac{1}{5} = \\frac{5-1}{5} = \\frac{4}{5}$."
+          },
+          {
+            math: "$$5^x = 100 \\cdot \\frac{5}{4} \\implies 5^x = 25 \\cdot 5 \\implies 5^x = 125$$",
+            explanation: "Isoliamo $5^x$ moltiplicando entrambi i membri per il reciproco $\\frac{5}{4}$. Semplifichiamo $100 : 4 = 25$ e otteniamo $125$."
+          },
+          {
+            math: "$$5^x = 5^3 \\implies \\boxed{x = 3}$$",
+            explanation: "Scriviamo $125$ come potenza in base $5$ ($125 = 5^3$). Essendo le basi uguali, uguagliamo gli esponenti: la soluzione è $x = 3$."
+          }
+        ]
+      },
+      {
+        id: "eq2",
+        btnLabel: "Eq. 2",
+        category: "Equazioni da risolvere • Esercizio 2",
+        points: "2 punti",
+        prompt: "Risolvi l'equazione logaritmica: $$\\log_3(2x + 1) = 2$$",
+        method: "Metodo scelto: Condizione di Esistenza (C.E.) e definizione di logaritmo",
+        steps: [
+          {
+            math: "$$\\text{C.E.: } 2x + 1 > 0 \\implies 2x > -1 \\implies x > -\\frac{1}{2}$$",
+            explanation: "PRIMO PASSO OBBLIGATORIO: il logaritmo esiste solo se il suo argomento è strettamente positivo. Imponiamo quindi $2x + 1 > 0$."
+          },
+          {
+            math: "$$\\log_3(2x + 1) = 2 \\implies 2x + 1 = 3^2$$",
+            explanation: "Applichiamo la definizione di logaritmo ($\\log_b(A) = c \\iff A = b^c$): l'argomento $2x+1$ è uguale alla base $3$ elevata al secondo membro $2$."
+          },
+          {
+            math: "$$2x + 1 = 9 \\implies 2x = 8 \\implies x = 4$$",
+            explanation: "Calcoliamo $3^2 = 9$, portiamo l'$1$ a destra cambiando segno ($9 - 1 = 8$) e dividiamo per $2$."
+          },
+          {
+            math: "$$\\text{Controllo C.E.: } 4 > -\\frac{1}{2} \\quad (\\text{Accettabile}) \\implies \\boxed{x = 4}$$",
+            explanation: "Confrontiamo il valore trovato con la condizione di esistenza: $4$ è maggiore di $-0,5$, quindi la soluzione $x = 4$ è accettabile!"
+          }
+        ]
+      },
+      {
+        id: "eq3",
+        btnLabel: "Eq. 3",
+        category: "Equazioni da risolvere • Esercizio 3",
+        points: "2 punti",
+        prompt: "Risolvi l'equazione esponenziale: $$9^x + 2 \\cdot 3^x - 3 = 0$$",
+        method: "Metodo scelto: Sostituzione con incognita ausiliaria t = 3^x",
+        steps: [
+          {
+            math: "$$(3^2)^x + 2 \\cdot 3^x - 3 = 0 \\implies (3^x)^2 + 2 \\cdot 3^x - 3 = 0$$",
+            explanation: "Notiamo che $9 = 3^2$. Riscriviamo $9^x$ come $(3^x)^2$ per ricondurre tutta l'equazione alla sola potenza $3^x$."
+          },
+          {
+            math: "$$\\text{Poniamo } t = 3^x \\quad (\\text{con } t > 0) \\implies t^2 + 2t - 3 = 0$$",
+            explanation: "Introduciamo la variabile ausiliaria $t = 3^x$. Ricordiamo che un esponenziale è sempre positivo ($t > 0$). Otteniamo un'equazione di secondo grado in $t$."
+          },
+          {
+            math: "$$(t + 3)(t - 1) = 0 \\quad \\text{oppure} \\quad t_{1,2} = \\frac{-2 \\pm \\sqrt{4 - 4(1)(-3)}}{2} = \\frac{-2 \\pm 4}{2}$$",
+            explanation: "Risolviamo l'equazione di secondo grado scomponendo il trinomio notevole (somma $+2$, prodotto $-3$) oppure usando la formula risolutiva."
+          },
+          {
+            math: "$$t_1 = -3 \\text{ (Impossibile / Non accettabile)} \\quad ; \\quad t_2 = 1 \\text{ (Accettabile)}$$",
+            explanation: "Analizziamo i due valori di $t$: poiché $3^x$ è sempre strettamente positivo, scartiamo $t_1 = -3$ e teniamo solo $t_2 = 1$."
+          },
+          {
+            math: "$$3^x = 1 \\implies 3^x = 3^0 \\implies \\boxed{x = 0}$$",
+            explanation: "Torniamo all'incognita $x$ sostituendo $t = 1$ in $3^x = t$. Ricordando che $1 = 3^0$, otteniamo la soluzione finale $x = 0$."
+          }
+        ]
+      },
+      {
+        id: "eq4",
+        btnLabel: "Eq. 4",
+        category: "Equazioni da risolvere • Esercizio 4",
+        points: "2 punti",
+        prompt: "Risolvi l'equazione esponenziale: $$4^{x-1} = 8$$",
+        method: "Metodo scelto: Riduzione di entrambi i membri a potenze con la stessa base (base 2)",
+        steps: [
+          {
+            math: "$$4 = 2^2 \\quad \\text{e} \\quad 8 = 2^3$$",
+            explanation: "Osserviamo le basi $4$ e $8$: entrambe sono potenze di $2$. Conviene quindi trasformare entrambi i membri in base $2$."
+          },
+          {
+            math: "$$(2^2)^{x-1} = 2^3$$",
+            explanation: "Sostituiamo $4$ con $2^2$ e $8$ con $2^3$ nell'equazione di partenza."
+          },
+          {
+            math: "$$2^{2(x-1)} = 2^3 \\implies 2^{2x - 2} = 2^3$$",
+            explanation: "Applichiamo la proprietà della potenza di potenza $(a^m)^n = a^{m \\cdot n}$, moltiplicando $2$ per tutto l'esponente $(x - 1)$."
+          },
+          {
+            math: "$$2x - 2 = 3$$",
+            explanation: "Avendo ottenuto un'uguaglianza tra due potenze con la stessa base $2$, uguagliamo direttamente i due esponenti."
+          },
+          {
+            math: "$$2x = 5 \\implies \\boxed{x = \\frac{5}{2} = 2,5}$$",
+            explanation: "Portiamo $-2$ a secondo membro ($3 + 2 = 5$) e dividiamo per $2$."
+          }
+        ]
+      },
+      {
+        id: "eq5",
+        btnLabel: "Eq. 5",
+        category: "Equazioni da risolvere • Esercizio 5",
+        points: "2 punti",
+        prompt: "Risolvi l'equazione logaritmica: $$\\ln(x + 4) = \\ln(2x + 1)$$",
+        method: "Metodo scelto: Sistema delle Condizioni di Esistenza e uguaglianza degli argomenti",
+        steps: [
+          {
+            math: "$$\\text{C.E.: } \\begin{cases} x + 4 > 0 \\\\ 2x + 1 > 0 \\end{cases} \\implies \\begin{cases} x > -4 \\\\ x > -\\frac{1}{2} \\end{cases} \\implies x > -\\frac{1}{2}$$",
+            explanation: "Imponiamo che ENTRAMBI gli argomenti dei logaritmi naturali siano positivi. Tra $x > -4$ e $x > -\\frac{1}{2}$, la condizione più restrittiva che le soddisfa entrambe è $x > -\\frac{1}{2}$."
+          },
+          {
+            math: "$$\\ln(x + 4) = \\ln(2x + 1) \\implies x + 4 = 2x + 1$$",
+            explanation: "Poiché i due logaritmi hanno la stessa base ($e$), possiamo uguagliare direttamente i loro argomenti."
+          },
+          {
+            math: "$$4 - 1 = 2x - x \\implies x = 3$$",
+            explanation: "Risolviamo l'equazione lineare spostando i termini con la $x$ da un lato e i termini noti dall'altro."
+          },
+          {
+            math: "$$\\text{Controllo C.E.: } 3 > -\\frac{1}{2} \\quad (\\text{Accettabile}) \\implies \\boxed{x = 3}$$",
+            explanation: "Verifichiamo l'accettabilità: $3$ è maggiore di $-0,5$ (infatti $\\ln(7) = \\ln(7)$). La soluzione $x = 3$ è confermata."
+          }
+        ]
+      },
+      {
+        id: "eq6",
+        btnLabel: "Eq. 6",
+        category: "Equazioni da risolvere • Esercizio 6",
+        points: "2 punti",
+        prompt: "Risolvi l'equazione logaritmica: $$\\log_2(x + 3) - \\log_2(x - 1) = 2$$",
+        method: "Metodo scelto: C.E. e proprietà della differenza di logaritmi (logaritmo del quoziente)",
+        steps: [
+          {
+            math: "$$\\text{C.E.: } \\begin{cases} x + 3 > 0 \\\\ x - 1 > 0 \\end{cases} \\implies \\begin{cases} x > -3 \\\\ x > 1 \\end{cases} \\implies x > 1$$",
+            explanation: "Imponiamo entrambi gli argomenti strettamente maggiori di zero. Il sistema delle due condizioni è verificato per $x > 1$."
+          },
+          {
+            math: "$$\\log_2\\left(\\frac{x + 3}{x - 1}\\right) = 2$$",
+            explanation: "Applichiamo il teorema della differenza di due logaritmi con uguale base: $\\log_b(A) - \\log_b(B) = \\log_b\\left(\\frac{A}{B}\\right)$."
+          },
+          {
+            math: "$$\\frac{x + 3}{x - 1} = 2^2 \\implies \\frac{x + 3}{x - 1} = 4$$",
+            explanation: "Usiamo la definizione di logaritmo: l'argomento frazionario è uguale alla base $2$ elevata all'esponente $2$ ($2^2 = 4$)."
+          },
+          {
+            math: "$$x + 3 = 4(x - 1) \\implies x + 3 = 4x - 4$$",
+            explanation: "Moltiplichiamo entrambi i membri per $(x - 1)$ (che è certamente diverso da $0$ per via della C.E. $x > 1$)."
+          },
+          {
+            math: "$$3 + 4 = 4x - x \\implies 3x = 7 \\implies x = \\frac{7}{3} \\approx 2,33$$",
+            explanation: "Isoliamo la $x$: otteniamo $3x = 7$, quindi $x = \\frac{7}{3}$."
+          },
+          {
+            math: "$$\\text{Controllo C.E.: } \\frac{7}{3} > 1 \\quad (\\text{Accettabile}) \\implies \\boxed{x = \\frac{7}{3}}$$",
+            explanation: "Poiché $\\frac{7}{3} \\approx 2,33$ è maggiore di $1$, la soluzione rispetta le condizioni di esistenza ed è pienamente accettabile."
+          }
+        ]
+      },
+      {
+        id: "prob_ab",
+        btnLabel: "Problema a) e b)",
+        category: "Una sostanza in un campione • Quesiti a) e b)",
+        points: "4 punti (2 + 2)",
+        prompt: "La quantità di una sostanza diminuisce del $20\\%$ ogni ora. All'inizio ($t=0$) sono presenti $150\\text{ mg}$.<br><strong>a)</strong> Quanti mg rimangono dopo un'ora? Scrivi il modello $M(t)$ per $t \\ge 0$.<br><strong>b)</strong> Calcola la quantità rimasta dopo tre ore.",
+        method: "Metodo scelto: Modello di decadimento esponenziale percentuale M(t) = M_0 · (1 - r)^t",
+        steps: [
+          {
+            math: "$$\\text{a) Dopo } 1\\text{ ora: } 150 - 20\\%\\text{ di } 150 = 150 - 0,20 \\cdot 150 = 150 - 30 = \\mathbf{120\\text{ mg}}$$",
+            explanation: "Calcoliamo il $20\\%$ della massa iniziale ($150\\text{ mg}$), che vale $30\\text{ mg}$, e lo sottraiamo: dopo un'ora restano $120\\text{ mg}$."
+          },
+          {
+            math: "$$\\text{Fattore di mantenimento orario: } 100\\% - 20\\% = 80\\% = 0,8 = \\frac{4}{5}$$",
+            explanation: "Se ogni ora la sostanza perde il $20\\%$, significa che alla fine di ogni ora rimane esattamente l'$80\\%$ (ossia il fattore moltiplicativo $0,8$) della quantità presente l'ora precedente."
+          },
+          {
+            math: "$$\\boxed{M(t) = 150 \\cdot (0,8)^t} \\quad \\text{con } t \\ge 0$$",
+            explanation: "Scriviamo la legge esponenziale continua al variare del tempo $t$ (in ore): quantità iniziale $150$ moltiplicata per il fattore $0,8$ elevato a $t$."
+          },
+          {
+            math: "$$\\text{b) Per } t = 3\\text{ ore: } M(3) = 150 \\cdot (0,8)^3$$",
+            explanation: "Per trovare la quantità rimasta dopo $3$ ore, sostituiamo $t = 3$ nella formula del modello esponenziale appena trovato."
+          },
+          {
+            math: "$$M(3) = 150 \\cdot 0,512 = \\boxed{76,8\\text{ mg}}$$",
+            explanation: "Con la calcolatrice calcoliamo $(0,8)^3 = 0,512$ e moltiplichiamo per $150$: dopo tre ore rimangono $76,8\\text{ mg}$ di sostanza."
+          }
+        ]
+      },
+      {
+        id: "prob_c",
+        btnLabel: "Problema c)",
+        category: "Una sostanza in un campione • Quesito c)",
+        points: "2 punti",
+        prompt: "<strong>c)</strong> Uno studente propone $M(t) = 150 - 30t$. È un modello coerente con il testo? Confronta i due modelli dopo due ore e spiega la differenza.",
+        method: "Metodo scelto: Confronto tra decrescita esponenziale (percentuale) e decrescita lineare (costante)",
+        steps: [
+          {
+            math: "$$\\text{Modello dello studente: } M_{\\text{lin}}(t) = 150 - 30t \\implies \\mathbf{\\text{NON è coerente col testo!}}$$",
+            explanation: "La formula $150 - 30t$ descrive una funzione LINEARE che toglie una quantità fissa di $30\\text{ mg}$ ogni ora, anziché il $20\\%$ della quantità rimasta."
+          },
+          {
+            math: "$$\\text{Dopo } 2\\text{ ore col modello esponenziale: } M(2) = 150 \\cdot (0,8)^2 = 150 \\cdot 0,64 = \\mathbf{96\\text{ mg}}$$",
+            explanation: "Nel modello corretto, durante la seconda ora si perde il $20\\%$ di $120\\text{ mg}$ (cioè $24\\text{ mg}$), quindi restano $120 - 24 = 96\\text{ mg}$."
+          },
+          {
+            math: "$$\\text{Dopo } 2\\text{ ore col modello lineare: } M_{\\text{lin}}(2) = 150 - 30 \\cdot 2 = 150 - 60 = \\mathbf{90\\text{ mg}}$$",
+            explanation: "Con la formula dello studente dopo $2$ ore resterebbero $90\\text{ mg}$ ($6\\text{ mg}$ in meno rispetto alla realtà)."
+          },
+          {
+            math: "$$\\text{Differenza concettuale: } -20\\%\\text{ variabile } \\neq -30\\text{ mg fissi all'ora}$$",
+            explanation: "CONCLUSIONE: I due modelli coincidono solo a $t=0$ ($150\\text{ mg}$) e a $t=1$ ($120\\text{ mg}$). Dal secondo passo in poi la perdita del $20\\%$ si calcola su una quantità via via più piccola, quindi la sostanza diminuisce più lentamente rispetto a una sottrazione fissa di $30\\text{ mg}$ (che farebbe addirittura azzerare e diventare negativa la massa dopo $5$ ore!)."
+          }
+        ]
+      },
+      {
+        id: "prob_d",
+        btnLabel: "Problema d) + Grafico",
+        category: "Una sostanza in un campione • Quesito d)",
+        points: "2 punti",
+        prompt: "<strong>d)</strong> Completa la tabella, traccia il grafico indicativo di $M(t)$ e stima quando rimangono $60\\text{ mg}$ (con una cifra decimale).",
+        method: "Metodo scelto: Compilazione tabella, rappresentazione cartesiana e risoluzione di M(t) = 60 con i logaritmi",
+        hasVisual: true,
+        steps: [
+          {
+            math: "$$\\begin{aligned} M(0) &= 150\\text{ mg} & M(1) &= 120\\text{ mg} & M(2) &= 96\\text{ mg} \\\\ M(3) &= 76,8\\text{ mg} & M(4) &= 61,44\\text{ mg} & M(6) &= 39,32\\text{ mg} \\end{aligned}$$",
+            explanation: "Calcoliamo $M(t) = 150 \\cdot (0,8)^t$ per tutti i valori della tabella ($t = 0, 1, 2, 3, 4, 6$). Guarda la tabella qui sotto che si popola e i punti che compaiono sul grafico!",
+            visualState: 1
+          },
+          {
+            math: "$$\\text{Grafico della curva esponenziale decrescente } M(t) = 150 \\cdot (0,8)^t$$",
+            explanation: "Uniamo i punti sul piano cartesiano con una curva esponenziale decrescente regolare (in blu nel grafico sottostante).",
+            visualState: 2
+          },
+          {
+            math: "$$M(t) = 60 \\implies 150 \\cdot (0,8)^t = 60$$",
+            explanation: "Per capire quando rimangono $60\\text{ mg}$, imponiamo $M(t) = 60$. Già dalla tabella notiamo che per $t=4$ siamo a $61,4\\text{ mg}$, quindi il tempo sarà appena superiore a $4\\text{ ore}$.",
+            visualState: 3
+          },
+          {
+            math: "$$(0,8)^t = \\frac{60}{150} \\implies (0,8)^t = 0,4$$",
+            explanation: "Dividiamo entrambi i membri per $150$: $\\frac{60}{150} = \\frac{2}{5} = 0,4$.",
+            visualState: 3
+          },
+          {
+            math: "$$t = \\log_{0,8}(0,4) = \\frac{\\ln(0,4)}{\\ln(0,8)} \\approx \\frac{-0,9163}{-0,2231} \\approx \\boxed{4,1\\text{ ore}}$$",
+            explanation: "Applichiamo i logaritmi (e la formula del cambio di base) per trovare l'esponente $t$: arrotondando a una cifra decimale, rimangono $60\\text{ mg}$ dopo circa $4,1\\text{ ore}$ (ossia circa $4\\text{ ore e } 6\\text{ minuti}$). Osserva il punto rosso di intersezione sul grafico!",
+            visualState: 4
+          }
+        ]
+      }
+    ];
+
+    // Stato corrente dell'applicazione
+    let currentExIndex = 0;
+    let currentStepIndex = 0;
+    let autoPlayInterval = null;
+
+    // Riferimenti DOM
+    const exerciseNav = document.getElementById('exerciseNav');
+    const exCategory = document.getElementById('exCategory');
+    const exPoints = document.getElementById('exPoints');
+    const exPrompt = document.getElementById('exPrompt');
+    const exMethod = document.getElementById('exMethod');
+    const stepsContainer = document.getElementById('stepsContainer');
+    const emptyHint = document.getElementById('emptyHint');
+    const visualSection = document.getElementById('visualSection');
+
+    const btnReset = document.getElementById('btnReset');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnAutoPlay = document.getElementById('btnAutoPlay');
+    const btnShowAll = document.getElementById('btnShowAll');
+    const progressFill = document.getElementById('progressFill');
+    const stepCounter = document.getElementById('stepCounter');
+
+    // Inizializzazione barra dei pulsanti esercizio
+    function initNav() {
+      exercises.forEach((ex, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'ex-btn' + (idx === 0 ? ' active' : '');
+        btn.textContent = ex.btnLabel;
+        btn.addEventListener('click', () => selectExercise(idx));
+        exerciseNav.appendChild(btn);
+      });
+    }
+
+    function selectExercise(index) {
+      stopAutoPlay();
+      currentExIndex = index;
+      currentStepIndex = 0;
+
+      // Aggiorna bottoni nav
+      document.querySelectorAll('.ex-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === index);
+      });
+
+      const ex = exercises[currentExIndex];
+      exCategory.textContent = ex.category;
+      exPoints.textContent = "Valore: " + ex.points;
+      exPrompt.innerHTML = ex.prompt;
+      exMethod.textContent = ex.method;
+
+      stepsContainer.innerHTML = '';
+      visualSection.classList.toggle('visible', !!ex.hasVisual);
+
+      updateUI(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      typesetMath();
+    }
+
+    function updateUI(autoScroll = true) {
+      const ex = exercises[currentExIndex];
+      const totalSteps = ex.steps.length;
+
+      // Mostra/nascondi suggerimento lavagna vuota
+      emptyHint.style.display = currentStepIndex === 0 ? 'block' : 'none';
+
+      // Sincronizza le card dei passaggi nel DOM
+      stepsContainer.innerHTML = '';
+      let latestCard = null;
+
+      for (let i = 0; i < currentStepIndex; i++) {
+        const stepData = ex.steps[i];
+        const card = document.createElement('div');
+        const isLast = (i === currentStepIndex - 1);
+        card.className = 'step-card' + (isLast ? ' latest' : '');
+        card.innerHTML = `
+          <div class="step-math">${stepData.math}</div>
+          <div class="step-explanation">
+            <div class="teacher-label"><span>✎</span> Spiegazione alla lavagna (Passo ${i + 1})</div>
+            <div>${stepData.explanation}</div>
+          </div>
+        `;
+        stepsContainer.appendChild(card);
+        if (isLast) latestCard = card;
+      }
+
+      // Aggiorna controlli e barra progresso
+      btnReset.disabled = currentStepIndex === 0;
+      btnPrev.disabled = currentStepIndex === 0;
+      btnNext.disabled = currentStepIndex >= totalSteps;
+      btnShowAll.disabled = currentStepIndex >= totalSteps;
+
+      const pct = totalSteps > 0 ? (currentStepIndex / totalSteps) * 100 : 0;
+      progressFill.style.width = pct + '%';
+      stepCounter.textContent = `Passo ${currentStepIndex} / ${totalSteps}`;
+
+      // Se siamo nel quesito d), aggiorna tabella e grafico
+      if (ex.hasVisual) {
+        let vState = 0;
+        if (currentStepIndex > 0) {
+          vState = ex.steps[currentStepIndex - 1].visualState || 0;
+        }
+        updateTableAndGraph(vState);
+      }
+
+      typesetMath();
+
+      // Scorrimento automatico dolce verso il nuovo passaggio scritto
+      if (autoScroll && latestCard) {
+        setTimeout(() => {
+          latestCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 80);
+      }
+    }
+
+    function typesetMath() {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    }
+
+    // Azioni Player
+    function nextStep() {
+      const ex = exercises[currentExIndex];
+      if (currentStepIndex < ex.steps.length) {
+        currentStepIndex++;
+        updateUI(true);
+      } else {
+        stopAutoPlay();
+      }
+    }
+
+    function prevStep() {
+      stopAutoPlay();
+      if (currentStepIndex > 0) {
+        currentStepIndex--;
+        updateUI(true);
+      }
+    }
+
+    function resetSteps() {
+      stopAutoPlay();
+      currentStepIndex = 0;
+      updateUI(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showAllSteps() {
+      stopAutoPlay();
+      currentStepIndex = exercises[currentExIndex].steps.length;
+      updateUI(false);
+    }
+
+    function toggleAutoPlay() {
+      if (autoPlayInterval) {
+        stopAutoPlay();
+      } else {
+        const ex = exercises[currentExIndex];
+        if (currentStepIndex >= ex.steps.length) {
+          currentStepIndex = 0;
+          updateUI(false);
+        }
+        btnAutoPlay.textContent = "⏸ Pausa Animazione";
+        btnAutoPlay.classList.add('playing');
+        nextStep();
+        autoPlayInterval = setInterval(() => {
+          if (currentStepIndex < exercises[currentExIndex].steps.length) {
+            nextStep();
+          } else {
+            stopAutoPlay();
+          }
+        }, 3800);
+      }
+    }
+
+    function stopAutoPlay() {
+      if (autoPlayInterval) {
+        clearInterval(autoPlayInterval);
+        autoPlayInterval = null;
+      }
+      btnAutoPlay.textContent = "▶ Play Animazione";
+      btnAutoPlay.classList.remove('playing');
+    }
+
+    // Gestione Tabella e Grafico Canvas per il Quesito 7d
+    function updateTableAndGraph(visualState) {
+      const values = {
+        0: "150",
+        1: "120",
+        2: "96",
+        3: "76,8",
+        4: "61,4",
+        6: "39,3"
+      };
+
+      Object.keys(values).forEach(t => {
+        const cell = document.getElementById(`cell-${t}`);
+        cell.textContent = visualState >= 1 ? values[t] : "?";
+      });
+
+      drawDecayGraph(visualState);
+    }
+
+    function drawDecayGraph(visualState) {
+      const canvas = document.getElementById('decayCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Margini del grafico
+      const padLeft = 65;
+      const padRight = 35;
+      const padTop = 30;
+      const padBottom = 45;
+      const plotW = W - padLeft - padRight;
+      const plotH = H - padTop - padBottom;
+
+      // Funzioni di trasformazione coordinate (t da 0 a 6, M da 0 a 160)
+      const toX = (t) => padLeft + (t / 6) * plotW;
+      const toY = (m) => padTop + plotH - (m / 160) * plotH;
+
+      // 1. Griglia di sfondo (identica al foglio della verifica)
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#334155";
+      ctx.font = "13px Segoe UI, sans-serif";
+
+      // Linee orizzontali (ogni 20 mg)
+      for (let m = 0; m <= 160; m += 20) {
+        const y = toY(m);
+        ctx.beginPath();
+        ctx.moveTo(padLeft, y);
+        ctx.lineTo(W - padRight, y);
+        ctx.stroke();
+        ctx.textAlign = "right";
+        ctx.fillText(m.toString(), padLeft - 10, y + 4);
+      }
+
+      // Linee verticali (ogni 0,5 ore)
+      for (let t = 0; t <= 6; t += 0.5) {
+        const x = toX(t);
+        ctx.beginPath();
+        ctx.moveTo(x, padTop);
+        ctx.lineTo(x, H - padBottom);
+        ctx.stroke();
+        ctx.textAlign = "center";
+        ctx.fillText(t.toFixed(1).replace('.', ','), x, H - padBottom + 20);
+      }
+
+      // 2. Assi principali
+      ctx.strokeStyle = "#0f172a";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padLeft, padTop);
+      ctx.lineTo(padLeft, H - padBottom);
+      ctx.lineTo(W - padRight, H - padBottom);
+      ctx.stroke();
+
+      ctx.font = "bold 14px Segoe UI, sans-serif";
+      ctx.fillStyle = "#0f172a";
+      ctx.textAlign = "left";
+      ctx.fillText("M(t) (mg)", padLeft - 45, padTop - 10);
+      ctx.textAlign = "center";
+      ctx.fillText("t (ore)", padLeft + plotW / 2, H - 6);
+
+      // 3. Se visualState >= 2: disegna la curva esponenziale M(t) = 150 * (0.8)^t
+      if (visualState >= 2) {
+        ctx.strokeStyle = "#0284c7";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let t = 0; t <= 6; t += 0.05) {
+          const m = 150 * Math.pow(0.8, t);
+          const x = toX(t);
+          const y = toY(m);
+          if (t === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      // 4. Se visualState >= 1: disegna i punti della tabella
+      if (visualState >= 1) {
+        const tableT = [0, 1, 2, 3, 4, 6];
+        tableT.forEach(t => {
+          const m = 150 * Math.pow(0.8, t);
+          const x = toX(t);
+          const y = toY(m);
+          ctx.fillStyle = "#1d4ed8";
+          ctx.beginPath();
+          ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        });
+      }
+
+      // 5. Se visualState >= 3: disegna la quota M = 60 mg
+      if (visualState >= 3) {
+        const y60 = toY(60);
+        ctx.strokeStyle = "#dc2626";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(padLeft, y60);
+        ctx.lineTo(W - padRight, y60);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = "#dc2626";
+        ctx.font = "bold 13px Segoe UI, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("Soglia M = 60 mg", padLeft + 12, y60 - 8);
+      }
+
+      // 6. Se visualState >= 4: evidenzia il punto di intersezione (t ≈ 4,1 ore)
+      if (visualState >= 4) {
+        const tTarget = Math.log(0.4) / Math.log(0.8); // ~4.106
+        const xTarget = toX(tTarget);
+        const yTarget = toY(60);
+
+        // Linea verticale tratteggiata fino all'asse t
+        ctx.strokeStyle = "#dc2626";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(xTarget, yTarget);
+        ctx.lineTo(xTarget, H - padBottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Punto rosso
+        ctx.fillStyle = "#dc2626";
+        ctx.beginPath();
+        ctx.arc(xTarget, yTarget, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Etichetta risultato
+        ctx.fillStyle = "#991b1b";
+        ctx.font = "bold 14px Segoe UI, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("t ≈ 4,1 ore (60 mg)", xTarget + 10, yTarget - 10);
+      }
+    }
+
+    // Event Listeners pulsanti
+    btnNext.addEventListener('click', () => { stopAutoPlay(); nextStep(); });
+    btnPrev.addEventListener('click', prevStep);
+    btnReset.addEventListener('click', resetSteps);
+    btnShowAll.addEventListener('click', showAllSteps);
+    btnAutoPlay.addEventListener('click', toggleAutoPlay);
+
+    // Navigazione da tastiera (Frecce Destra/Sinistra + Barra Spaziatrice per Play/Pausa)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        stopAutoPlay();
+        nextStep();
+      } else if (e.key === 'ArrowLeft') {
+        prevStep();
+      } else if (e.code === 'Space') {
+        e.preventDefault(); // Evita lo scroll brusco della pagina con la barra spaziatrice
+        toggleAutoPlay();
+      }
+    });
+
+    // Avvio iniziale
+    initNav();
+    selectExercise(0);
+  </script>
+</body>
+</html>
